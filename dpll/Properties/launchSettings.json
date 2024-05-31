@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "dpll": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Users\\petet\\Documents\\vs\\5\\SAT\\test\\uf150-01.cnf"
+    }
+  }
+}
