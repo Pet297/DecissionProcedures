@@ -81,42 +81,6 @@ namespace dpll.DataStructures
         public bool IsHead0NegativeLiteral => Head0 != -1 && Literals[Head0] < 0;
         public bool IsHead1NegativeLiteral => Head1 != -1 && Literals[Head1] < 0;
 
-        public List<int> GetUndefinedLiteralPositions()
-        {
-            List<int> undefinedLiteralPositions = new List<int>();
-            for (int i = 0; i < Literals.Length; i++)
-            {
-                int literal = Literals[i];
-                if (Formula.IsLiteralUndefined(literal))
-                {
-                    undefinedLiteralPositions.Add(i);
-                }
-            }
-            return undefinedLiteralPositions;
-        }
-
-        public List<int> GetDecidedLiteralPositionsByMostRecent()
-        {
-            List<Tuple<long,int>> decidedLiteralOredersPositions = new();
-            for (int i = 0; i < Literals.Length; i++)
-            {
-                int literal = Literals[i];
-                if (!Formula.IsLiteralUndefined(literal))
-                {
-                    decidedLiteralOredersPositions.Add(new Tuple<long, int>(Formula.GetVariableDecisionOrder(Math.Abs(literal)), i));
-                }
-            }
-            // Sorts (decision order, literal's index in clause) pairs by the decision order from most recent.
-            decidedLiteralOredersPositions.Sort((a, b) => -a.Item1.CompareTo(b.Item1));
-            // Tranforms to list of just the indices in clause
-            List<int> indices = new();
-            foreach (Tuple<long, int> t in decidedLiteralOredersPositions)
-            {
-                indices.Add(t.Item2);
-            }
-            return indices;
-        }
-
         public int Decide(int decision)
         {
             if (IsSatisfied) return 0;

@@ -6,7 +6,8 @@ namespace dpll.DataStructures
     {
         event EventHandler<ClauseStateReportEventArgs>? ClauseStateReport; 
 
-        ClauseState AddClause(WorkingClause clauseToAdd);
+        ClauseState AddInitialClause(WorkingClause clauseToAdd);
+        ClauseState AddLearnedClause(WorkingClause clauseToAdd, int topLevelLiteralIndex, int assertionLevelLiteralIndex);
         ClauseState RemoveClause(WorkingClause clauseToRemove);
         void Decide(int decision);
         void UndoDecision(int decision);

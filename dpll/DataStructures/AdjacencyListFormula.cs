@@ -27,7 +27,15 @@ namespace dpll.DataStructures
         }
 
         public event EventHandler<ClauseStateReportEventArgs>? ClauseStateReport;
-        public ClauseState AddClause(WorkingClause clause)
+        public ClauseState AddInitialClause(WorkingClause clause)
+        {
+            return AddClause(clause);
+        }
+        public ClauseState AddLearnedClause(WorkingClause clause, int topLevelLiteralIndex, int assertionLevelLiteralIndex)
+        {
+            return AddClause(clause);
+        }
+        private ClauseState AddClause(WorkingClause clause)
         {
             AdjacencyListClause listClause = new(formula, clause.Literals.ToArray());
             clauseMap.Add(clause, listClause);
@@ -120,5 +128,6 @@ namespace dpll.DataStructures
         {
             ClauseStateReport?.Invoke(this, e);
         }
+
     }
 }

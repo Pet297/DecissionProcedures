@@ -68,7 +68,7 @@ namespace dpll.DataStructures
                 List<int> literals = c.Literals.Select(l => l.Positive ? l.Index : -l.Index).ToList();
                 WorkingClause clause = new(literals.ToArray());
 
-                ClauseState state = DataStructure.AddClause(clause);
+                ClauseState state = DataStructure.AddInitialClause(clause);
                 var node = ClausesPerState[state].AddLast(clause);
                 ClauseNodes.Add(clause, node);
             }
@@ -153,7 +153,7 @@ namespace dpll.DataStructures
             DataStructure.Decide(literal);
             return true;
         }
-        public void AddClause(int[] clause)
+        public void AddLearnedClause(int[] clause, int topLevelLiteralIndex, int assertionLevelLiteralIndex)
         {
             WorkingClause workingClause = new(clause);
 
@@ -178,7 +178,7 @@ namespace dpll.DataStructures
             // Adding to structure
             if (learnClause)
             {
-                ClauseState state = DataStructure.AddClause(workingClause);
+                ClauseState state = DataStructure.AddLearnedClause(workingClause, topLevelLiteralIndex, assertionLevelLiteralIndex);
                 Debug.Assert(state != ClauseState.Conflict);
                 var node = ClausesPerState[state].AddLast(workingClause);
                 ClauseNodes.Add(workingClause, node);
@@ -199,25 +199,38 @@ namespace dpll.DataStructures
 
         public void ClearLearnedClauses(int numberOfClausesToKeep)
         {
-            List<WorkingClause> learnedClauses = new(LearnedClauses);
-            learnedClauses.Sort((a, b) => a.Literals.Length - b.Literals.Length);
-            IEnumerable<WorkingClause> clausesToRemove = learnedClauses.Skip(numberOfClausesToKeep);
+            HashSet<WorkingClause> learnedClauses = new(LearnedClauses);
+
+            for (int i = 0; i < Antecedent.Length; i++)
+            {
+                if (Antecedent[i] != null)
+                {
+                    learnedClauses.Remove(Antecedent[i]!);
+                }
+            }
+
+            int numberOfAntecedents = LearnedClauses.Count - learnedClauses.Count;
+
+            List<WorkingClause> learnedClauses2 = new(learnedClauses);
+
+            learnedClauses2.Sort((a, b) => a.Literals.Length - b.Literals.Length);
+            IEnumerable<WorkingClause> clausesToRemove = learnedClauses2.Skip(Math.Min(0, numberOfClausesToKeep - numberOfAntecedents));
             foreach(WorkingClause clause in clausesToRemove)
             {
                 RemoveClause(clause);
             }
         }
 
-        public Tuple<int[],int> FindAssertiveClauseAndDecisionLevel()
+        public ConflictAnalysisResult DoConflictAnalysis()
         {
             Debug.Assert(Antecedent[0] != null);
 
-            List<int> clause = Antecedent[0]!.Literals.ToList();
+            HashSet<int> clause = Antecedent[0]!.Literals.ToHashSet();
 
             while (true)
             {
                 int goodLiteral = 0;
-                foreach(int literal in clause)
+                foreach (int literal in clause)
                 {
                     if (LiteralDecisionLevel[Math.Abs(literal)] == DecisionLevel && Antecedent[Math.Abs(literal)] != null)
                     {
@@ -246,13 +259,17 @@ namespace dpll.DataStructures
             }
 
             // Get decision level
-            if (clause.Count == 0) return new Tuple<int[], int>(clause.ToArray(), -1);
-            if (clause.Count == 1) return new Tuple<int[], int>(clause.ToArray(), 0);
+            if (clause.Count == 0) return new ConflictAnalysisResult(clause.ToArray(), -1, -1, -1);
+            if (clause.Count == 1) return new ConflictAnalysisResult(clause.ToArray(), 0, 0, -1);
 
-            List<int> decisionLevels = clause.Select((literal) => LiteralDecisionLevel[Math.Abs(literal)]).ToList();
-            decisionLevels.Sort();
+            // Sorts literals by decision level from highest to lowest
+            List<int> learnedClauseLiterals = clause.ToList();
+            learnedClauseLiterals.Sort((a, b) => LiteralDecisionLevel[Math.Abs(b)] - LiteralDecisionLevel[Math.Abs(a)]);
 
-            return new Tuple<int[], int>(clause.ToArray(), decisionLevels[^2]);
+            int[] learnedClause = learnedClauseLiterals.ToArray();
+
+            // Literal at index 0 should have highest decision level, literal at index 1 should be on the assertion level.
+            return new ConflictAnalysisResult(learnedClause, LiteralDecisionLevel[Math.Abs(learnedClause[1])], 0, 1);
         }
 
         public bool IsSatisfied =>

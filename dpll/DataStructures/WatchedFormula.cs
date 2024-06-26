@@ -27,45 +27,42 @@ namespace dpll.DataStructures
         }
 
         public event EventHandler<ClauseStateReportEventArgs>? ClauseStateReport;
-        public ClauseState AddClause(WorkingClause clause)
+        public ClauseState AddInitialClause(WorkingClause clause)
+        {
+            if (clause.Literals.Length == 0)
+            {
+                return AddClause(clause, -1, -1);
+            }
+            else if (clause.Literals.Length == 1)
+            {
+                return AddClause(clause, 0, -1);
+            }
+            else
+            {
+                return AddClause(clause, 0, 1);
+            }
+        }
+        public ClauseState AddLearnedClause(WorkingClause clause, int topLevelLiteralIndex, int assertionLevelLiteralIndex)
+        {
+            return AddClause(clause, topLevelLiteralIndex, assertionLevelLiteralIndex);
+        }
+        public ClauseState AddClause(WorkingClause clause, int head0Location, int head1Location)
         {
             WatchedClause watchedClause = new(formula, clause, clause.Literals.ToArray());
             clauseMap.Add(clause, watchedClause);
 
-            List<int> undefinedLiteralPositions = watchedClause.GetUndefinedLiteralPositions();
-            List<int> otherLiteralPositions = watchedClause.GetDecidedLiteralPositionsByMostRecent();
-            Debug.Assert(undefinedLiteralPositions.Count + otherLiteralPositions.Count == clause.Literals.Length);
-
-            if (clause.Literals.Length >= 1)
+            if (head0Location != -1)
             {
-                int index;
-                if (undefinedLiteralPositions.Count >= 1)
-                {
-                    index = undefinedLiteralPositions[0];
-                }
-                else
-                {
-                    index = otherLiteralPositions[0];
-                }
-                watchedClause.Head0 = index;
-                int variableIndex = Math.Abs(clause.Literals[index]);
-                bool truthValue = clause.Literals[index] > 0;
+                watchedClause.Head0 = head0Location;
+                int variableIndex = Math.Abs(clause.Literals[head0Location]);
+                bool truthValue = clause.Literals[head0Location] > 0;
                 (truthValue ? PositiveVariableOccurences : NegativeVariableOccurences)[variableIndex].AddLast(watchedClause.Head0node!);
             }
-            if (clause.Literals.Length >= 2)
+            if (head1Location != -1)
             {
-                int index;
-                if (undefinedLiteralPositions.Count >= 2)
-                {
-                    index = undefinedLiteralPositions[1];
-                }
-                else
-                {
-                    index = otherLiteralPositions[1 - undefinedLiteralPositions.Count];
-                }
-                watchedClause.Head1 = index;
-                int variableIndex = Math.Abs(clause.Literals[index]);
-                bool truthValue = clause.Literals[index] > 0;
+                watchedClause.Head1 = head1Location;
+                int variableIndex = Math.Abs(clause.Literals[head1Location]);
+                bool truthValue = clause.Literals[head1Location] > 0;
                 (truthValue ? PositiveVariableOccurences : NegativeVariableOccurences)[variableIndex].AddLast(watchedClause.Head1node!);
             }
 

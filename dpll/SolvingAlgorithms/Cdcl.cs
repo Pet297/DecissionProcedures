@@ -24,7 +24,7 @@ namespace dpll.SolvingAlgorithms
                 {
                     if (conflictCount >= maxConflicts)
                     {
-                        formula.ClearLearnedClauses(maxClauses / 2);
+                        formula.BackJump(0);
                         break;
                     }
 
@@ -35,10 +35,10 @@ namespace dpll.SolvingAlgorithms
                     else if (formula.IsConflict)
                     {
                         conflictCount++;
-                        var (assertiveClause, decisionLevel) = formula.FindAssertiveClauseAndDecisionLevel();
-                        if (decisionLevel == -1) return false;
-                        formula.BackJump(decisionLevel);
-                        formula.AddClause(assertiveClause);
+                        ConflictAnalysisResult conflictAnalysisResult = formula.DoConflictAnalysis();
+                        if (conflictAnalysisResult.AssertionLevel == -1) return false;
+                        formula.BackJump(conflictAnalysisResult.AssertionLevel);
+                        formula.AddLearnedClause(conflictAnalysisResult.Clause, conflictAnalysisResult.TopLevelLiteralIndex, conflictAnalysisResult.AssertionLevelLiteralIndex);
 
                         if (formula.LearnedClausesCount > maxClauses)
                         {
