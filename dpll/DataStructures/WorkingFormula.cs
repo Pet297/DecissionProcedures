@@ -26,6 +26,7 @@ namespace dpll.DataStructures
         private readonly long[] LiteralDecisionOrder;
         private int DecisionLevel;
         private readonly List<WorkingClause> LearnedClauses;
+        private readonly Dictionary<WorkingClause, HashSet<int>> LearnedClauseLiteralSets;
 
         // statistics
         private long decisionCount = 0;
@@ -59,6 +60,7 @@ namespace dpll.DataStructures
             Antecedent = new WorkingClause?[formula.VariableCount + 1];
             LiteralDecisionLevel = new int[formula.VariableCount + 1];
             LiteralDecisionOrder = new long[formula.VariableCount + 1];
+            LearnedClauseLiteralSets = new();
             DecisionLevel = 0;
 
             DataStructure = dataStructureGenerator(this);
@@ -158,11 +160,11 @@ namespace dpll.DataStructures
             WorkingClause workingClause = new(clause);
 
             // Subsumption Removal
-            HashSet<int> literals = clause.ToHashSet();
             bool learnClause = true;
+            HashSet<int> literals = clause.ToHashSet();
             for (int i = 0; i < LearnedClauses.Count; i++)
             {
-                HashSet<int> literals2 = LearnedClauses[i].Literals.ToHashSet();
+                HashSet<int> literals2 = LearnedClauseLiteralSets[LearnedClauses[i]];
                 if (literals.IsSubsetOf(literals2))
                 {
                     RemoveClause(LearnedClauses[i]);
@@ -183,6 +185,7 @@ namespace dpll.DataStructures
                 var node = ClausesPerState[state].AddLast(workingClause);
                 ClauseNodes.Add(workingClause, node);
                 LearnedClauses.Add(workingClause);
+                LearnedClauseLiteralSets.Add(workingClause, literals);
             }
 
             totalLearnedClauses++;
@@ -194,6 +197,7 @@ namespace dpll.DataStructures
             ClausesPerState[state].Remove(clause);
             ClauseNodes.Remove(clause);
             LearnedClauses.Remove(clause);
+            LearnedClauseLiteralSets.Remove(clause);
             clausesRemovedBySubsumption++;
         }
 
