@@ -1,11 +1,7 @@
-﻿using dpll.Formula;
+﻿using dpll.DecisionHeuristics;
+using dpll.Formula;
 using dpll.SolvingState;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace dpll.DataStructures
 {
@@ -14,7 +10,7 @@ namespace dpll.DataStructures
         // data structure
         private readonly IClauseStateDataStructure DataStructure;
         private readonly CnfFormula Formula;
-        private readonly Random Rng = new(88209); // 88209 is a fixed seed for determinism
+        private readonly IDecisionHeuristic DecisionHeuristic;
 
         // data
         private readonly Dictionary<WorkingClause, LinkedListNode<WorkingClause>> ClauseNodes;
@@ -42,7 +38,7 @@ namespace dpll.DataStructures
         public long LearnedClausesCount => LearnedClauses.Count;
         public long TotalLearnedClausesCount =>totalLearnedClauses;
 
-        public WorkingFormula(CnfFormula formula, Func<WorkingFormula, IClauseStateDataStructure> dataStructureGenerator)
+        public WorkingFormula(CnfFormula formula, Func<WorkingFormula, IClauseStateDataStructure> dataStructureGenerator, Func<WorkingFormula, IDecisionHeuristic> decisionHeuristicGenerator)
         {
             Formula = formula;
 
@@ -64,6 +60,7 @@ namespace dpll.DataStructures
             DecisionLevel = 0;
 
             DataStructure = dataStructureGenerator(this);
+            DecisionHeuristic = decisionHeuristicGenerator(this);
 
             foreach (CnfClause c in formula.Clauses)
             {
@@ -73,6 +70,8 @@ namespace dpll.DataStructures
                 ClauseState state = DataStructure.AddInitialClause(clause);
                 var node = ClausesPerState[state].AddLast(clause);
                 ClauseNodes.Add(clause, node);
+
+                DecisionHeuristic.AddInitialClause(clause);
             }
 
             DataStructure.ClauseStateReport += DataStructure_ClauseStateReport;
@@ -83,21 +82,9 @@ namespace dpll.DataStructures
         }
 
         // solver methods
-        public int PickNextDecision()
+        public NextDecision PickNextDecision()
         {
-            List<int> unassigned = new();
-            for (int i = 1; i < Assignment.Length; i++)
-            {
-                if (Assignment[i] == VariableAssignment.Undefined)
-                {
-                    unassigned.Add(i);
-                }
-            }
-
-            Debug.Assert(unassigned.Count > 0);
-
-            int pickedIndex = unassigned[Rng.Next(unassigned.Count)];
-            return pickedIndex;
+            return DecisionHeuristic.GetNextDecision(Assignment);
         }
 
         public void Decide(int literal)
@@ -143,7 +130,7 @@ namespace dpll.DataStructures
                 Backtrack();
             }
         }
-        public bool PropagateLiteral(int literal, WorkingClause antecedent)
+        public bool PropagateLiteral(int literal, WorkingClause? antecedent)
         {
             Debug.Assert(Assignment[Math.Abs(literal)] == VariableAssignment.Undefined);
             propagatedLiteralsCount++;
@@ -192,7 +179,6 @@ namespace dpll.DataStructures
         }
         public void RemoveClause(WorkingClause clause)
         {
-            // TODO: Check if it breaks antecedents (it shouldn't)
             ClauseState state = DataStructure.RemoveClause(clause);
             ClausesPerState[state].Remove(clause);
             ClauseNodes.Remove(clause);
@@ -230,12 +216,14 @@ namespace dpll.DataStructures
             Debug.Assert(Antecedent[0] != null);
 
             HashSet<int> clause = Antecedent[0]!.Literals.ToHashSet();
+            HashSet<int> involvedVariables = new HashSet<int>();
 
             while (true)
             {
                 int goodLiteral = 0;
                 foreach (int literal in clause)
                 {
+                    involvedVariables.Add(Math.Abs(literal));
                     if (LiteralDecisionLevel[Math.Abs(literal)] == DecisionLevel && Antecedent[Math.Abs(literal)] != null)
                     {
                         if (goodLiteral == 0 || LiteralDecisionOrder[Math.Abs(literal)] > LiteralDecisionOrder[Math.Abs(literal)])
@@ -261,6 +249,9 @@ namespace dpll.DataStructures
                     }
                 }
             }
+
+            // Report to decision heuristic
+            DecisionHeuristic.ReportVariablesInConflict(involvedVariables.ToList());
 
             // Get decision level
             if (clause.Count == 0) return new ConflictAnalysisResult(clause.ToArray(), -1, -1, -1);

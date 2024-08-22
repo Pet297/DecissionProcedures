@@ -1,6 +1,4 @@
-﻿using dpll.SolvingState;
-
-namespace dpll.DataStructures
+﻿namespace dpll.DataStructures
 {
     public class WatchedClause
     {
@@ -40,7 +38,6 @@ namespace dpll.DataStructures
             }
         }
 
-        // TODO: Rewrite definition of clause states
         public ClauseState GetClauseState()
         {
             return this switch

@@ -4,6 +4,7 @@ using dpll.Formula;
 using dpll.SolvingAlgorithms;
 using dpll.SolvingState;
 using System.Diagnostics;
+using dpll.DecisionHeuristics;
 
 namespace dpll
 {
@@ -15,11 +16,13 @@ namespace dpll
             string? inputFile = null;
             string? inputType = null;
             bool useImplications = false;
-            Func<WorkingFormula, IClauseStateDataStructure> dataStructureGenerator = (formula) => (new WatchedFormula(formula));
+            Func<WorkingFormula, IClauseStateDataStructure> dataStructureGenerator = (formula) => new WatchedFormula(formula);
             ISolvingAlgorithm solvingAlgorithm = new Cdcl();
+            Func<WorkingFormula, IDecisionHeuristic> decisionHeuristicGenerator = (formula) => new RandomDecisionHeuristic();
+            List<int> assumptions = new();
             int lubyResetBase = 100;
-            float cacheRunCoefficient = 0.1f;
-            float cacheVariableCoefficient = 0.1f;
+            float cacheRunCoefficient = 0.03f;
+            float cacheVariableCoefficient = 0.17f;
 
             // Parse arguments
             try
@@ -50,6 +53,42 @@ namespace dpll
                     {
                         cacheVariableCoefficient = float.Parse(args[i + 1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture);
                         i++;
+                    }
+                    else if (args[i] == "--random-decisions") decisionHeuristicGenerator = (formula) => new RandomDecisionHeuristic();
+                    else if (args[i] == "--static-jw") decisionHeuristicGenerator = (formula) => new StaticJeroslowWangHeuristic(formula);
+                    else if (args[i] == "--vsids") decisionHeuristicGenerator = (formula) => new VsidsHeuristic(formula);
+                    else if (args[i] == "--assumptions")
+                    {
+                        int indexTo = -1;
+                        string assumptionsString = "";
+
+                        if (!args[i+1].StartsWith("["))
+                        {
+                            throw new Exception("Incorect argument format.");
+                        }
+                        for (int j = i + 1; j < args.Length; j++)
+                        {
+                            assumptionsString += args[j];
+                            if (args[j].EndsWith("]"))
+                            {
+                                indexTo = j;
+                                break;
+                            }
+                        }
+                        if (indexTo == -1)
+                        {
+                            throw new Exception("Incorect argument format.");
+                        }
+
+                        assumptionsString = assumptionsString[1..^1];
+                        assumptionsString = assumptionsString.Replace(" ", "");
+                        string[] parts = assumptionsString.Split(",");
+                        foreach (string part in parts)
+                        {
+                            assumptions.Add(int.Parse(part));
+                        }
+
+                        i = indexTo;
                     }
                     else if (inputFile == null) inputFile = args[i];
                     else throw new Exception("Incorect argument format.");
@@ -89,14 +128,27 @@ namespace dpll
             reader.Close();
 
             // Parse input into a CNF formula
-            Formula.CnfFormula formula = parser.Parse(input);
+            CnfFormula formula = parser.Parse(input);
 
             // Send parameters to solving algorithm
             AlgorithmSettings settings = new(lubyResetBase, cacheRunCoefficient, cacheVariableCoefficient);
             solvingAlgorithm.ApplySettings(settings);
 
             // Prepare solving data structure
-            WorkingFormula workingFormula = new(formula, dataStructureGenerator);
+            WorkingFormula? workingFormula = null;
+            if (assumptions.Count > 0)
+            {
+                IDecisionHeuristic decisionHeuristicGeneratorOuter(WorkingFormula formula)
+                {
+                    IDecisionHeuristic inner = decisionHeuristicGenerator(formula);
+                    return new AssumptionsHeuristic(assumptions, inner);
+                }
+                workingFormula = new(formula, dataStructureGenerator, decisionHeuristicGeneratorOuter);
+            }
+            else
+            {
+                workingFormula = new(formula, dataStructureGenerator, decisionHeuristicGenerator);
+            }
             
             // Start solving
             Stopwatch sw = new();

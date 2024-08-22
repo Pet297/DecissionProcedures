@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace dpll.DataStructures
+﻿namespace dpll.DataStructures
 {
     public class AdjacencyListFormula : IClauseStateDataStructure
     {

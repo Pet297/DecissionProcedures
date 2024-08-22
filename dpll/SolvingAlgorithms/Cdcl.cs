@@ -1,7 +1,5 @@
 ﻿using dpll.DataStructures;
-using dpll.SolvingState;
-using Microsoft.VisualBasic;
-using System.Reflection.Metadata.Ecma335;
+using dpll.DecisionHeuristics;
 
 namespace dpll.SolvingAlgorithms
 {
@@ -47,8 +45,15 @@ namespace dpll.SolvingAlgorithms
                     }
                     else
                     {
-                        int nextDecision = formula.PickNextDecision();
-                        formula.Decide(nextDecision);
+                        NextDecision nextDecision = formula.PickNextDecision();
+                        if (nextDecision.IsAssumption)
+                        {
+                            formula.PropagateLiteral(nextDecision.Decision, new WorkingClause(new int[] { nextDecision.Decision }));
+                        }
+                        else
+                        {
+                            formula.Decide(nextDecision.Decision);
+                        }
                     }
                 }
 

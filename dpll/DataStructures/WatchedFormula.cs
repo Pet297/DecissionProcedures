@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace dpll.DataStructures
+﻿namespace dpll.DataStructures
 {
     public class WatchedFormula : IClauseStateDataStructure
     {

@@ -1,5 +1,5 @@
 ﻿using dpll.DataStructures;
-using dpll.SolvingState;
+using dpll.DecisionHeuristics;
 
 namespace dpll.SolvingAlgorithms
 {
@@ -10,17 +10,20 @@ namespace dpll.SolvingAlgorithms
             formula.UnitPropagation();
             if (formula.IsSatisfied) return true;
             if (formula.IsConflict) return false;
-            int nextDecision = formula.PickNextDecision();
+            NextDecision nextDecision = formula.PickNextDecision();
 
-            formula.Decide(nextDecision);
+            formula.Decide(nextDecision.Decision);
             bool satisfiable = Solve(formula);
             if (satisfiable) return true;
             else formula.Backtrack();
 
-            formula.Decide(-nextDecision);
-            satisfiable = Solve(formula);
-            if (satisfiable) return true;
-            else formula.Backtrack();
+            if (!nextDecision.IsAssumption)
+            {
+                formula.Decide(-nextDecision.Decision);
+                satisfiable = Solve(formula);
+                if (satisfiable) return true;
+                else formula.Backtrack();
+            }
             
             return false;
         }
