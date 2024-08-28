@@ -10,20 +10,17 @@ namespace dpll.SolvingAlgorithms
             formula.UnitPropagation();
             if (formula.IsSatisfied) return true;
             if (formula.IsConflict) return false;
-            NextDecision nextDecision = formula.PickNextDecision();
+            int nextDecision = formula.PickNextDecision();
 
-            formula.Decide(nextDecision.Decision);
+            formula.Decide(nextDecision);
             bool satisfiable = Solve(formula);
             if (satisfiable) return true;
             else formula.Backtrack();
-
-            if (!nextDecision.IsAssumption)
-            {
-                formula.Decide(-nextDecision.Decision);
-                satisfiable = Solve(formula);
-                if (satisfiable) return true;
-                else formula.Backtrack();
-            }
+            
+            formula.Decide(-nextDecision);
+            satisfiable = Solve(formula);
+            if (satisfiable) return true;
+            else formula.Backtrack();
             
             return false;
         }

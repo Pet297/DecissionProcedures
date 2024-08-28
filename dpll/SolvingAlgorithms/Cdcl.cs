@@ -45,15 +45,8 @@ namespace dpll.SolvingAlgorithms
                     }
                     else
                     {
-                        NextDecision nextDecision = formula.PickNextDecision();
-                        if (nextDecision.IsAssumption)
-                        {
-                            formula.PropagateLiteral(nextDecision.Decision, new WorkingClause(new int[] { nextDecision.Decision }));
-                        }
-                        else
-                        {
-                            formula.Decide(nextDecision.Decision);
-                        }
+                        int nextDecision = formula.PickNextDecision();
+                        formula.Decide(nextDecision);
                     }
                 }
 

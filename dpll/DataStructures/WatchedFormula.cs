@@ -1,4 +1,6 @@
-﻿namespace dpll.DataStructures
+﻿using dpll.SolvingState;
+
+namespace dpll.DataStructures
 {
     public class WatchedFormula : IClauseStateDataStructure
     {
@@ -134,6 +136,16 @@
         protected virtual void OnClauseStateReport(ClauseStateReportEventArgs e)
         {
             ClauseStateReport?.Invoke(this, e);
+        }
+
+        public List<int> GetImplications(int literal)
+        {
+            return new List<int>();
+        }
+        public int GetCurrentLength(WorkingClause clause, VariableAssignment[] assignment)
+        {
+            // Use inefficient default implementation
+            return clause.GetCurrentLength(assignment);
         }
     }
 }

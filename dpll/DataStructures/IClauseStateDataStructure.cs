@@ -12,5 +12,8 @@ namespace dpll.DataStructures
         void Decide(int decision);
         void UndoDecision(int decision);
         int GetUndefinedLiteral(WorkingClause clause);
+
+        List<int> GetImplications(int literal);
+        int GetCurrentLength(WorkingClause clause, VariableAssignment[] assignment);
     }
 }

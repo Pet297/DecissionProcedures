@@ -52,13 +52,13 @@ namespace dpll.DecisionHeuristics
             }
         }
 
-        public NextDecision GetNextDecision(VariableAssignment[] currentAssignment)
+        public int GetNextDecision(VariableAssignment[] currentAssignment)
         {
             foreach (int i in VariableOrder)
             {
                 if (currentAssignment[Math.Abs(i)] == VariableAssignment.Undefined)
                 {
-                    return new NextDecision(-i, false);
+                    return -i;
                 }
             }
 

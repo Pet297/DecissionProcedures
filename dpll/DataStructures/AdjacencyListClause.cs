@@ -69,5 +69,11 @@ namespace dpll.DataStructures
         public bool IsUnit => !IsSatisfied && (FalsifiedLiteralCount == Literals.Length - 1);
         public bool IsConflict => !IsSatisfied && (FalsifiedLiteralCount == Literals.Length);
         public bool IsUnresolved => !IsSatisfied && (FalsifiedLiteralCount <= Literals.Length - 2);
+
+        public int GetCurrentLength()
+        {
+            Debug.Assert(!IsSatisfied);
+            return Literals.Length - FalsifiedLiteralCount;
+        }
     }
 }

@@ -82,11 +82,25 @@ namespace dpll.DataStructures
         }
 
         // solver methods
-        public NextDecision PickNextDecision()
+        public int PickNextDecision()
         {
             return DecisionHeuristic.GetNextDecision(Assignment);
         }
 
+        public void Assume(int literal)
+        {
+            Decision decision = new(literal, DecisionLevel);
+            DecisionStack.Push(decision);
+
+            Assignment[Math.Abs(literal)] = literal > 0 ? VariableAssignment.Satisfied : VariableAssignment.Falsified;
+            LiteralDecisionLevel[Math.Abs(literal)] = DecisionLevel;
+            LiteralDecisionOrder[Math.Abs(literal)] = decisionCount + 1 + propagatedLiteralsCount;
+
+            // Artificial unit clause as antecedent
+            Antecedent[Math.Abs(literal)] = new WorkingClause(new int[] { literal });
+
+            DataStructure.Decide(literal);
+        }
         public void Decide(int literal)
         {
             DecisionLevel++;
@@ -216,7 +230,7 @@ namespace dpll.DataStructures
             Debug.Assert(Antecedent[0] != null);
 
             HashSet<int> clause = Antecedent[0]!.Literals.ToHashSet();
-            HashSet<int> involvedVariables = new HashSet<int>();
+            HashSet<int> involvedVariables = new();
 
             while (true)
             {
@@ -319,7 +333,35 @@ namespace dpll.DataStructures
         {
             return LiteralDecisionOrder[variable];
         }
+        public IEnumerable<WorkingClause> ActiveClauses()
+        {
+            foreach (WorkingClause clause in ClausesPerState[ClauseState.Unresolved])
+            {
+                yield return clause;
+            }
+            foreach (WorkingClause clause in ClausesPerState[ClauseState.Unit])
+            {
+                yield return clause;
+            }
+            foreach (WorkingClause clause in ClausesPerState[ClauseState.Conflict])
+            {
+                yield return clause;
+            }
+        }
+        public Dictionary<WorkingClause, int> GetClauseLengths()
+        {
+            Dictionary<WorkingClause, int> clauseLengths = new();
+            foreach(WorkingClause clause in ActiveClauses())
+            {
+                clauseLengths.Add(clause, DataStructure.GetCurrentLength(clause, Assignment));
+            }
+            return clauseLengths;
+        }
         public int VariableCount => Assignment.Length - 1;
+        public VariableAssignment[] GetCurrentAssignment()
+        {
+            return (VariableAssignment[])Assignment.Clone();
+        }
         public void PrintAsignment()
         {
             bool first = true;

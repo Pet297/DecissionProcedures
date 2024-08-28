@@ -38,7 +38,7 @@ namespace dpll.DecisionHeuristics
             // NOOP
         }
 
-        public NextDecision GetNextDecision(VariableAssignment[] currentAssignment)
+        public int GetNextDecision(VariableAssignment[] currentAssignment)
         {
             if (!sorted)
             {
@@ -51,7 +51,7 @@ namespace dpll.DecisionHeuristics
             {
                 if (currentAssignment[Math.Abs(i)] == VariableAssignment.Undefined)
                 {
-                    return new NextDecision(i, false);
+                    return i;
                 }
             }
 

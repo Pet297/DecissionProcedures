@@ -24,7 +24,7 @@ namespace dpll.DecisionHeuristics
             // NOOP
         }
 
-        public NextDecision GetNextDecision(VariableAssignment[] currentAssignment)
+        public int GetNextDecision(VariableAssignment[] currentAssignment)
         {
             List<int> unassigned = new();
             for (int i = 1; i < currentAssignment.Length; i++)
@@ -37,8 +37,7 @@ namespace dpll.DecisionHeuristics
 
             Debug.Assert(unassigned.Count > 0);
 
-            int pickedIndex = unassigned[Rng.Next(unassigned.Count)];
-            return new NextDecision(pickedIndex, false);
+            return unassigned[Rng.Next(unassigned.Count)];
         }
     }
 }

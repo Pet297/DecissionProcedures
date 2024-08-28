@@ -5,6 +5,7 @@ using dpll.SolvingAlgorithms;
 using dpll.SolvingState;
 using System.Diagnostics;
 using dpll.DecisionHeuristics;
+using dpll.DifferenceHeuristics;
 
 namespace dpll
 {
@@ -19,6 +20,7 @@ namespace dpll
             Func<WorkingFormula, IClauseStateDataStructure> dataStructureGenerator = (formula) => new WatchedFormula(formula);
             ISolvingAlgorithm solvingAlgorithm = new Cdcl();
             Func<WorkingFormula, IDecisionHeuristic> decisionHeuristicGenerator = (formula) => new RandomDecisionHeuristic();
+            IDifferenceHeuristic differenceHeuristic = new BackboneSearchHeuristic();
             List<int> assumptions = new();
             int lubyResetBase = 100;
             float cacheRunCoefficient = 0.03f;
@@ -34,10 +36,9 @@ namespace dpll
                     else if (args[i] == "--dimacs") inputType = "dimacs";
                     else if (args[i] == "--smt-lib") inputType = "smtlib";
                     else if (args[i] == "--adjacency-list") dataStructureGenerator = (formula) => (new AdjacencyListFormula(formula));
-                    else if (args[i] == "--head-tail") throw new NotSupportedException("Head tail structure isn't supported yet.");
                     else if (args[i] == "--watched") dataStructureGenerator = (formula) => (new WatchedFormula(formula));
                     else if (args[i] == "--dpll") solvingAlgorithm = new Dpll();
-                    else if (args[i] == "--dpll-plus") throw new NotSupportedException("Dpll+ algorithm isn't supported yet.");
+                    else if (args[i] == "--dpll-look-ahead") solvingAlgorithm = new DpllLookAhead();
                     else if (args[i] == "--cdcl") solvingAlgorithm = new Cdcl();
                     else if (args[i] == "--luby-reset-base")
                     {
@@ -62,7 +63,7 @@ namespace dpll
                         int indexTo = -1;
                         string assumptionsString = "";
 
-                        if (!args[i+1].StartsWith("["))
+                        if (!args[i + 1].StartsWith("["))
                         {
                             throw new Exception("Incorect argument format.");
                         }
@@ -90,6 +91,9 @@ namespace dpll
 
                         i = indexTo;
                     }
+                    else if (args[i] == "--crh") differenceHeuristic = new ClauseReductionHeuristic();
+                    else if (args[i] == "--wbh") differenceHeuristic = new WeightedBinariesHeuristic();
+                    else if (args[i] == "--bsh") differenceHeuristic = new BackboneSearchHeuristic();
                     else if (inputFile == null) inputFile = args[i];
                     else throw new Exception("Incorect argument format.");
                 }
@@ -130,25 +134,15 @@ namespace dpll
             // Parse input into a CNF formula
             CnfFormula formula = parser.Parse(input);
 
+            // If assumptions are present, put them at the begining of the algorithm
+            if (assumptions.Count > 0) solvingAlgorithm = new AssumptionAlgorithm(solvingAlgorithm, assumptions);
+
             // Send parameters to solving algorithm
-            AlgorithmSettings settings = new(lubyResetBase, cacheRunCoefficient, cacheVariableCoefficient);
+            AlgorithmSettings settings = new(lubyResetBase, cacheRunCoefficient, cacheVariableCoefficient, differenceHeuristic);
             solvingAlgorithm.ApplySettings(settings);
 
             // Prepare solving data structure
-            WorkingFormula? workingFormula = null;
-            if (assumptions.Count > 0)
-            {
-                IDecisionHeuristic decisionHeuristicGeneratorOuter(WorkingFormula formula)
-                {
-                    IDecisionHeuristic inner = decisionHeuristicGenerator(formula);
-                    return new AssumptionsHeuristic(assumptions, inner);
-                }
-                workingFormula = new(formula, dataStructureGenerator, decisionHeuristicGeneratorOuter);
-            }
-            else
-            {
-                workingFormula = new(formula, dataStructureGenerator, decisionHeuristicGenerator);
-            }
+            WorkingFormula? workingFormula = new(formula, dataStructureGenerator, decisionHeuristicGenerator);
             
             // Start solving
             Stopwatch sw = new();
