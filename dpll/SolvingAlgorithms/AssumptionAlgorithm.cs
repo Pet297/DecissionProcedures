@@ -1,11 +1,4 @@
 ﻿using dpll.DataStructures;
-using dpll.DecisionHeuristics;
-using dpll.SolvingState;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace dpll.SolvingAlgorithms
 {

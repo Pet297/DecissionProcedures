@@ -93,13 +93,11 @@ namespace dpll.DataStructures
             DecisionStack.Push(decision);
 
             Assignment[Math.Abs(literal)] = literal > 0 ? VariableAssignment.Satisfied : VariableAssignment.Falsified;
-            LiteralDecisionLevel[Math.Abs(literal)] = DecisionLevel;
+            LiteralDecisionLevel[Math.Abs(literal)] = -1;
             LiteralDecisionOrder[Math.Abs(literal)] = decisionCount + 1 + propagatedLiteralsCount;
 
-            // Artificial unit clause as antecedent
-            Antecedent[Math.Abs(literal)] = new WorkingClause(new int[] { literal });
-
             DataStructure.Decide(literal);
+            decisionCount++;
         }
         public void Decide(int literal)
         {
@@ -230,14 +228,13 @@ namespace dpll.DataStructures
             Debug.Assert(Antecedent[0] != null);
 
             HashSet<int> clause = Antecedent[0]!.Literals.ToHashSet();
-            HashSet<int> involvedVariables = new();
+            HashSet<int> involvedVariables = clause.ToHashSet();
 
             while (true)
             {
                 int goodLiteral = 0;
                 foreach (int literal in clause)
                 {
-                    involvedVariables.Add(Math.Abs(literal));
                     if (LiteralDecisionLevel[Math.Abs(literal)] == DecisionLevel && Antecedent[Math.Abs(literal)] != null)
                     {
                         if (goodLiteral == 0 || LiteralDecisionOrder[Math.Abs(literal)] > LiteralDecisionOrder[Math.Abs(literal)])
@@ -259,6 +256,7 @@ namespace dpll.DataStructures
                     }
                     else if (!clause.Contains(literal))
                     {
+                        involvedVariables.Add(Math.Abs(literal));
                         clause.Add(literal);
                     }
                 }
@@ -344,6 +342,13 @@ namespace dpll.DataStructures
                 yield return clause;
             }
             foreach (WorkingClause clause in ClausesPerState[ClauseState.Conflict])
+            {
+                yield return clause;
+            }
+        }
+        public IEnumerable<WorkingClause> NonUnitClauses()
+        {
+            foreach (WorkingClause clause in ClausesPerState[ClauseState.Unresolved])
             {
                 yield return clause;
             }
