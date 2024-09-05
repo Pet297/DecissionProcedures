@@ -1,15 +1,14 @@
 ﻿using dpll.DataStructures;
-using dpll.DecisionHeuristics;
 using dpll.DifferenceHeuristics;
 using dpll.SolvingState;
-using Microsoft.VisualBasic;
-using System.Linq.Expressions;
 
 namespace dpll.SolvingAlgorithms
 {
     public class DpllLookAhead : ISolvingAlgorithm
     {
         private IDifferenceHeuristic? Heuristic;
+
+        public bool LearnsClauses => false;
 
         public bool Solve(WorkingFormula formula)
         {
@@ -65,11 +64,14 @@ namespace dpll.SolvingAlgorithms
                 formula.UnitPropagation();
                 Dictionary<WorkingClause, int> clauseLengthsAfterPositive = formula.GetClauseLengths();
                 bool autarkyDetected = AutarkyDetected(clauseLengthsBefore, clauseLengthsAfterPositive);
-                if (autarkyDetected)
+                if (autarkyDetected || formula.IsSatisfied)
                 {
                     // Autarky detected, don't backtrack and end look ahead
+                    if (autarkyDetected) Console.WriteLine($"Autarky detected by {i}.");
+                    if (formula.IsSatisfied) Console.WriteLine($"Formula satisfied by {i}.");
                     return null;
                 }
+                bool conflictOnPositive = formula.IsConflict;
                 VariableAssignment[] positiveAssignment = formula.GetCurrentAssignment();
                 formula.Backtrack();
 
@@ -77,12 +79,30 @@ namespace dpll.SolvingAlgorithms
                 formula.UnitPropagation();
                 Dictionary<WorkingClause, int> clauseLengthsAfterNegative = formula.GetClauseLengths();
                 autarkyDetected = AutarkyDetected(clauseLengthsBefore, clauseLengthsAfterNegative);
-                if (autarkyDetected)
+                if (autarkyDetected || formula.IsSatisfied)
                 {
+                    if (autarkyDetected) Console.WriteLine($"Autarky detected by {-i}.");
+                    if (formula.IsSatisfied) Console.WriteLine($"Formula satisfied by {-i}.");
                     return null;
                 }
+                bool conflictOnNegative = formula.IsConflict;
                 VariableAssignment[] negativeAssignment = formula.GetCurrentAssignment();
                 formula.Backtrack();
+
+                if (conflictOnPositive)
+                {
+                    if (conflictOnNegative) Console.WriteLine($"CONFLICT ON {i} AND {-i}.");
+                    else Console.WriteLine($"Conflict on {i}.");
+                    // Also handles (conflictOnPositive && conflictOnNegative), because on recursion in Solve(WF), conflict is checked.
+                    formula.Decide(-i);
+                    return null;
+                }
+                if (conflictOnNegative)
+                {
+                    Console.WriteLine($"Conflict on {-i}.");
+                    formula.Decide(i);
+                    return null;
+                }
 
                 double positiveHeuristicValue = Heuristic!.Heuristic(clauseLengthsBefore, clauseLengthsAfterPositive, assignmentBefore, positiveAssignment);
                 double negativeHeuristicValue = Heuristic!.Heuristic(clauseLengthsBefore, clauseLengthsAfterNegative, assignmentBefore, negativeAssignment);

@@ -10,6 +10,8 @@ namespace dpll.DataStructures
         public LinkedList<WorkingClause>[] PositiveVariableOccurences;
         public LinkedList<WorkingClause>[] NegativeVariableOccurences;
 
+        public bool CanWorkWithLearnedClauses => true;
+
         public WatchedFormula(WorkingFormula formula)
         {
             clauseMap = new Dictionary<WorkingClause, WatchedClause>();

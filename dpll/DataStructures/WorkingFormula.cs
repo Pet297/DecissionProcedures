@@ -2,6 +2,7 @@
 using dpll.Formula;
 using dpll.SolvingState;
 using System.Diagnostics;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace dpll.DataStructures
 {
@@ -23,6 +24,7 @@ namespace dpll.DataStructures
         private int DecisionLevel;
         private readonly List<WorkingClause> LearnedClauses;
         private readonly Dictionary<WorkingClause, HashSet<int>> LearnedClauseLiteralSets;
+        private bool ConflictByImplications = false;
 
         // statistics
         private long decisionCount = 0;
@@ -48,7 +50,8 @@ namespace dpll.DataStructures
                 { ClauseState.Unresolved, new() },
                 { ClauseState.Unit, new() },
                 { ClauseState.Conflict, new() },
-                { ClauseState.Satisfied, new() }
+                { ClauseState.Satisfied, new() },
+                { ClauseState.ManagedByImplications, new() }
             };
             DecisionStack = new();
             LearnedClauses = new();
@@ -111,6 +114,8 @@ namespace dpll.DataStructures
 
             DataStructure.Decide(literal);
             decisionCount++;
+
+            BcpUnitPropagation(literal);
         }
         public void UnitPropagation()
         {
@@ -121,6 +126,43 @@ namespace dpll.DataStructures
                 PropagateLiteral(literal, clause);
 
                 if (ClausesPerState[ClauseState.Conflict].Count > 0) break;
+            }
+        }
+        public void BcpUnitPropagation(int initialLiteral)
+        {
+            Stack<int> implications = new Stack<int>(DataStructure.GetImplications(initialLiteral));
+
+            while (implications.Count > 0)
+            {
+                while (implications.Count > 0)
+                {
+                    int implication = implications.Pop();
+                    if (IsLiteralSatisfied(implication)) continue;
+                    if (IsLiteralUnsatisfied(implication))
+                    {
+                        ConflictByImplications = true;
+                        break;
+                    }
+
+                    // Implications are only returned by the eager data structure which disallows learning clauses, so no antecedent is needed
+                    PropagateLiteral(implication, null);
+                    foreach (int deeperImpliedLiteral in DataStructure.GetImplications(implication))
+                    {
+                        implications.Push(deeperImpliedLiteral);
+                    }
+                    if (IsConflict) break;
+                }
+                if (ClausesPerState[ClauseState.Unit].Count > 0)
+                {
+                    WorkingClause clause = ClausesPerState[ClauseState.Unit].First!.Value;
+                    int literal = DataStructure.GetUndefinedLiteral(clause);
+                    PropagateLiteral(literal, clause);
+                    foreach (int deeperImpliedLiteral in DataStructure.GetImplications(literal))
+                    {
+                        implications.Push(deeperImpliedLiteral);
+                    }
+                }
+                if (IsConflict) break;
             }
         }
         public void Backtrack()
@@ -134,6 +176,7 @@ namespace dpll.DataStructures
                 DataStructure.UndoDecision(decision.Value);
             }
             DecisionLevel--;
+            ConflictByImplications = false;
         }
         public void BackJump(int level)
         {
@@ -282,9 +325,10 @@ namespace dpll.DataStructures
         public bool IsSatisfied =>
             ClausesPerState[ClauseState.Unresolved].Count == 0 &&
             ClausesPerState[ClauseState.Unit].Count == 0 &&
-            ClausesPerState[ClauseState.Conflict].Count == 0;
+            ClausesPerState[ClauseState.Conflict].Count == 0 &&
+            !ConflictByImplications;
         public bool IsConflict =>
-            Antecedent[0] != null;
+            Antecedent[0] != null || ConflictByImplications;
 
         // clause state report
         public void UpdateClauseState(WorkingClause clause, ClauseState newState)
@@ -305,6 +349,7 @@ namespace dpll.DataStructures
         }
 
         // general methods
+        public bool CanWorkWithLearnedClauses => DataStructure.CanWorkWithLearnedClauses;
         public bool IsLiteralSatisfied(int literal)
         {
             int variableIndex = Math.Abs(literal);
@@ -345,12 +390,35 @@ namespace dpll.DataStructures
             {
                 yield return clause;
             }
+            foreach (WorkingClause clause in ClausesPerState[ClauseState.ManagedByImplications])
+            {
+                bool yieldClause = true;
+                foreach (int literal in clause.Literals)
+                {
+                    if (IsLiteralSatisfied(literal))
+                    {
+                        yieldClause = false;
+                        break;
+                    }
+                }
+                if (yieldClause)
+                {
+                    yield return clause;
+                }
+            }
         }
         public IEnumerable<WorkingClause> NonUnitClauses()
         {
             foreach (WorkingClause clause in ClausesPerState[ClauseState.Unresolved])
             {
                 yield return clause;
+            }
+            foreach (WorkingClause clause in ClausesPerState[ClauseState.ManagedByImplications])
+            {
+                if (clause.GetCurrentLength(Assignment) >= 2)
+                {
+                    yield return clause;
+                }
             }
         }
         public Dictionary<WorkingClause, int> GetClauseLengths()

@@ -4,7 +4,7 @@ namespace dpll.DataStructures
 {
     public interface IClauseStateDataStructure
     {
-        event EventHandler<ClauseStateReportEventArgs>? ClauseStateReport; 
+        event EventHandler<ClauseStateReportEventArgs>? ClauseStateReport;
 
         ClauseState AddInitialClause(WorkingClause clauseToAdd);
         ClauseState AddLearnedClause(WorkingClause clauseToAdd, int topLevelLiteralIndex, int assertionLevelLiteralIndex);
@@ -15,5 +15,7 @@ namespace dpll.DataStructures
 
         List<int> GetImplications(int literal);
         int GetCurrentLength(WorkingClause clause, VariableAssignment[] assignment);
+
+        bool CanWorkWithLearnedClauses { get; }
     }
 }

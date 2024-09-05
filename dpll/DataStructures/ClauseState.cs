@@ -12,5 +12,6 @@ namespace dpll.DataStructures
         Unit,
         Conflict,
         Satisfied,
+        ManagedByImplications,
     }
 }

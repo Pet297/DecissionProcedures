@@ -2,27 +2,33 @@
 
 namespace dpll.DataStructures
 {
-    public class AdjacencyListFormula : IClauseStateDataStructure
+    public class EagerAdjacencyListFormula : IClauseStateDataStructure
     {
         private readonly Dictionary<WorkingClause, AdjacencyListClause> clauseMap;
         private readonly WorkingFormula formula;
 
+        public List<int>[] PositiveVariableImplications;
+        public List<int>[] NegativeVariableImplications;
         public List<WorkingClause>[] PositiveVariableOccurences;
         public List<WorkingClause>[] NegativeVariableOccurences;
 
-        public bool CanWorkWithLearnedClauses => true;
+        public bool CanWorkWithLearnedClauses => false;
 
-        public AdjacencyListFormula(WorkingFormula formula)
+        public EagerAdjacencyListFormula(WorkingFormula formula)
         {
             clauseMap = new Dictionary<WorkingClause, AdjacencyListClause>();
 
             PositiveVariableOccurences = new List<WorkingClause>[formula.VariableCount + 1];
             NegativeVariableOccurences = new List<WorkingClause>[formula.VariableCount + 1];
+            PositiveVariableImplications = new List<int>[formula.VariableCount + 1];
+            NegativeVariableImplications = new List<int>[formula.VariableCount + 1];
 
             for (int i = 0; i < PositiveVariableOccurences.Length; i++)
             {
                 PositiveVariableOccurences[i] = new List<WorkingClause>();
                 NegativeVariableOccurences[i] = new List<WorkingClause>();
+                PositiveVariableImplications[i] = new List<int>();
+                NegativeVariableImplications[i] = new List<int>();
             }
 
             this.formula = formula;
@@ -38,6 +44,33 @@ namespace dpll.DataStructures
             return AddClause(clause);
         }
         private ClauseState AddClause(WorkingClause clause)
+        {
+            if (clause.Literals.Length == 2)
+            {
+                return AddBinaryClause(clause);
+            }
+            else
+            {
+                return AddNonBinaryClause(clause);
+            }
+        }
+        private ClauseState AddBinaryClause(WorkingClause clause)
+        {
+            int literal1 = clause.Literals[0];
+            int literal2 = clause.Literals[1];
+
+            bool sign1 = literal1 > 0;
+            bool sign2 = literal2 > 0;
+            int index1 = Math.Abs(literal1);
+            int index2 = Math.Abs(literal2);
+
+            // (not literal1) => literal2, (not literal2) => literal1
+            (sign1 ? NegativeVariableImplications : PositiveVariableImplications)[index1].Add(literal2);
+            (sign2 ? NegativeVariableImplications : PositiveVariableImplications)[index2].Add(literal1);
+
+            return ClauseState.ManagedByImplications;
+        }
+        private ClauseState AddNonBinaryClause(WorkingClause clause)
         {
             AdjacencyListClause listClause = new(formula, clause.Literals.ToArray());
             clauseMap.Add(clause, listClause);
@@ -75,6 +108,33 @@ namespace dpll.DataStructures
         }
         public ClauseState RemoveClause(WorkingClause clause)
         {
+            if (clause.Literals.Length == 2)
+            {
+                return RemoveBinaryClause(clause);
+            }
+            else
+            {
+                return RemoveNonBinaryClause(clause);
+            }
+        }
+        public ClauseState RemoveBinaryClause(WorkingClause clause)
+        {
+            int literal1 = clause.Literals[0];
+            int literal2 = clause.Literals[1];
+
+            bool sign1 = literal1 > 0;
+            bool sign2 = literal2 > 0;
+            int index1 = Math.Abs(literal1);
+            int index2 = Math.Abs(literal2);
+
+            // REMOVE (not literal1) => literal2, (not literal2) => literal1
+            (sign1 ? NegativeVariableImplications : PositiveVariableImplications)[index1].Remove(literal2);
+            (sign2 ? NegativeVariableImplications : PositiveVariableImplications)[index2].Remove(literal1);
+
+            return ClauseState.ManagedByImplications;
+        }
+        public ClauseState RemoveNonBinaryClause(WorkingClause clause)
+        {
             ClauseState state = clauseMap[clause].GetClauseState();
             foreach (int literal in clause.Literals)
             {
@@ -85,6 +145,7 @@ namespace dpll.DataStructures
             clauseMap.Remove(clause);
             return state;
         }
+
         public void Decide(int decision)
         {
             int variableIndex = Math.Abs(decision);
@@ -124,7 +185,9 @@ namespace dpll.DataStructures
 
         public List<int> GetImplications(int literal)
         {
-            return new List<int>();
+            bool sign = literal > 0;
+            int index = Math.Abs(literal);
+            return (sign ? PositiveVariableImplications : NegativeVariableImplications)[index];
         }
 
         private void ReportClauseState(WorkingClause clause, ClauseState currentState)
@@ -138,7 +201,14 @@ namespace dpll.DataStructures
 
         public int GetCurrentLength(WorkingClause clause, VariableAssignment[] assignment)
         {
-            return clauseMap[clause].GetCurrentLength();
+            if (clause.Literals.Length == 2)
+            {
+                return clause.GetCurrentLength(assignment);
+            }
+            else
+            {
+                return clauseMap[clause].GetCurrentLength();
+            }
         }
     }
 }

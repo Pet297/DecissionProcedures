@@ -5,6 +5,8 @@ namespace dpll.SolvingAlgorithms
 {
     public class Dpll : ISolvingAlgorithm
     {
+        public bool LearnsClauses => false;
+
         public bool Solve(WorkingFormula formula)
         {
             formula.UnitPropagation();

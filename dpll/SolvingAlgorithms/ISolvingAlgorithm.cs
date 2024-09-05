@@ -5,7 +5,8 @@ namespace dpll.SolvingAlgorithms
 {
     public interface ISolvingAlgorithm
     {
-        public bool Solve(WorkingFormula formula);
-        public void ApplySettings(AlgorithmSettings settings);
+        bool Solve(WorkingFormula formula);
+        void ApplySettings(AlgorithmSettings settings);
+        bool LearnsClauses { get; }
     }
 }

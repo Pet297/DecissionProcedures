@@ -2,7 +2,6 @@
 using dpll.InputParsing;
 using dpll.Formula;
 using dpll.SolvingAlgorithms;
-using dpll.SolvingState;
 using System.Diagnostics;
 using dpll.DecisionHeuristics;
 using dpll.DifferenceHeuristics;
@@ -17,8 +16,8 @@ namespace dpll
             string? inputFile = null;
             string? inputType = null;
             bool useImplications = false;
-            Func<WorkingFormula, IClauseStateDataStructure> dataStructureGenerator = (formula) => new WatchedFormula(formula);
-            ISolvingAlgorithm solvingAlgorithm = new Cdcl();
+            Func<WorkingFormula, IClauseStateDataStructure> dataStructureGenerator = (formula) => new AdjacencyListFormula(formula);
+            ISolvingAlgorithm solvingAlgorithm = new DpllLookAhead();
             Func<WorkingFormula, IDecisionHeuristic> decisionHeuristicGenerator = (formula) => new RandomDecisionHeuristic();
             IDifferenceHeuristic differenceHeuristic = new BackboneSearchHeuristic();
             List<int> assumptions = new();
@@ -37,6 +36,7 @@ namespace dpll
                     else if (args[i] == "--smt-lib") inputType = "smtlib";
                     else if (args[i] == "--adjacency-list") dataStructureGenerator = (formula) => (new AdjacencyListFormula(formula));
                     else if (args[i] == "--watched") dataStructureGenerator = (formula) => (new WatchedFormula(formula));
+                    else if (args[i] == "--eager") dataStructureGenerator = (formula) => (new EagerAdjacencyListFormula(formula));
                     else if (args[i] == "--dpll") solvingAlgorithm = new Dpll();
                     else if (args[i] == "--dpll-look-ahead") solvingAlgorithm = new DpllLookAhead();
                     else if (args[i] == "--cdcl") solvingAlgorithm = new Cdcl();
@@ -143,6 +143,11 @@ namespace dpll
 
             // Prepare solving data structure
             WorkingFormula? workingFormula = new(formula, dataStructureGenerator, decisionHeuristicGenerator);
+            if (solvingAlgorithm.LearnsClauses && !workingFormula.CanWorkWithLearnedClauses)
+            {
+                Console.WriteLine("Solving data structure doesn't support learning clauses, while solving algorithm requires it.");
+                return;
+            }
             
             // Start solving
             Stopwatch sw = new();

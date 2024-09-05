@@ -9,6 +9,8 @@ namespace dpll.SolvingAlgorithms
         private float cacheRunCoefficient;
         private float cacheVariableCoefficient;
 
+        public bool LearnsClauses => true;
+
         public bool Solve(WorkingFormula formula)
         {
             long runIndex = 1;

@@ -8,6 +8,8 @@ namespace dpll.SolvingAlgorithms
         private readonly List<int> Assumptions;
         private int NextAssumptionIndex = 0;
 
+        public bool LearnsClauses => InnerAlgrithm.LearnsClauses;
+
         public AssumptionAlgorithm(ISolvingAlgorithm innerAlgorithm, List<int> assumptions)
         {
             InnerAlgrithm = innerAlgorithm;
