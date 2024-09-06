@@ -13,13 +13,15 @@ namespace dpll.SolvingAlgorithms
         public readonly float CacheRunCoefficient;
         public readonly float CacheVariableCoefficient;
         public readonly IDifferenceHeuristic DifferenceHeuristic;
+        public readonly bool Debug;
 
-        public AlgorithmSettings(int lubyResetBase, float cacheRunCoefficient, float cacheVariableCoefficient, IDifferenceHeuristic differenceHeuristic)
+        public AlgorithmSettings(int lubyResetBase, float cacheRunCoefficient, float cacheVariableCoefficient, IDifferenceHeuristic differenceHeuristic, bool debug)
         {
             LubyResetBase = lubyResetBase;
             CacheRunCoefficient = cacheRunCoefficient;
             CacheVariableCoefficient = cacheVariableCoefficient;
             DifferenceHeuristic = differenceHeuristic;
+            Debug = debug;
         }
     }
 }

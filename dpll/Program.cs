@@ -24,6 +24,7 @@ namespace dpll
             int lubyResetBase = 100;
             float cacheRunCoefficient = 0.03f;
             float cacheVariableCoefficient = 0.17f;
+            bool debug = false;
 
             // Parse arguments
             try
@@ -94,6 +95,7 @@ namespace dpll
                     else if (args[i] == "--crh") differenceHeuristic = new ClauseReductionHeuristic();
                     else if (args[i] == "--wbh") differenceHeuristic = new WeightedBinariesHeuristic();
                     else if (args[i] == "--bsh") differenceHeuristic = new BackboneSearchHeuristic();
+                    else if (args[i] == "--debug") debug = true;
                     else if (inputFile == null) inputFile = args[i];
                     else throw new Exception("Incorect argument format.");
                 }
@@ -138,7 +140,7 @@ namespace dpll
             if (assumptions.Count > 0) solvingAlgorithm = new AssumptionAlgorithm(solvingAlgorithm, assumptions);
 
             // Send parameters to solving algorithm
-            AlgorithmSettings settings = new(lubyResetBase, cacheRunCoefficient, cacheVariableCoefficient, differenceHeuristic);
+            AlgorithmSettings settings = new(lubyResetBase, cacheRunCoefficient, cacheVariableCoefficient, differenceHeuristic, debug);
             solvingAlgorithm.ApplySettings(settings);
 
             // Prepare solving data structure

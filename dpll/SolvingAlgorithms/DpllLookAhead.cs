@@ -7,6 +7,7 @@ namespace dpll.SolvingAlgorithms
     public class DpllLookAhead : ISolvingAlgorithm
     {
         private IDifferenceHeuristic? Heuristic;
+        private bool Debug = false;
 
         public bool LearnsClauses => false;
 
@@ -46,6 +47,7 @@ namespace dpll.SolvingAlgorithms
         public void ApplySettings(AlgorithmSettings settings)
         {
             Heuristic = settings.DifferenceHeuristic;
+            Debug = settings.Debug;
         }
 
         private int? LookAhead(WorkingFormula formula)
@@ -67,8 +69,8 @@ namespace dpll.SolvingAlgorithms
                 if (autarkyDetected || formula.IsSatisfied)
                 {
                     // Autarky detected, don't backtrack and end look ahead
-                    if (autarkyDetected) Console.WriteLine($"Autarky detected by {i}.");
-                    if (formula.IsSatisfied) Console.WriteLine($"Formula satisfied by {i}.");
+                    if (Debug && autarkyDetected) Console.WriteLine($"Autarky detected by {i}.");
+                    if (Debug && formula.IsSatisfied) Console.WriteLine($"Formula satisfied by {i}.");
                     return null;
                 }
                 bool conflictOnPositive = formula.IsConflict;
@@ -81,8 +83,8 @@ namespace dpll.SolvingAlgorithms
                 autarkyDetected = AutarkyDetected(clauseLengthsBefore, clauseLengthsAfterNegative);
                 if (autarkyDetected || formula.IsSatisfied)
                 {
-                    if (autarkyDetected) Console.WriteLine($"Autarky detected by {-i}.");
-                    if (formula.IsSatisfied) Console.WriteLine($"Formula satisfied by {-i}.");
+                    if (Debug && autarkyDetected) Console.WriteLine($"Autarky detected by {-i}.");
+                    if (Debug && formula.IsSatisfied) Console.WriteLine($"Formula satisfied by {-i}.");
                     return null;
                 }
                 bool conflictOnNegative = formula.IsConflict;
@@ -91,15 +93,15 @@ namespace dpll.SolvingAlgorithms
 
                 if (conflictOnPositive)
                 {
-                    if (conflictOnNegative) Console.WriteLine($"CONFLICT ON {i} AND {-i}.");
-                    else Console.WriteLine($"Conflict on {i}.");
+                    if (Debug && conflictOnNegative) Console.WriteLine($"Conflict on {i} and {-i}.");
+                    else if (Debug) Console.WriteLine($"Conflict on {i}.");
                     // Also handles (conflictOnPositive && conflictOnNegative), because on recursion in Solve(WF), conflict is checked.
                     formula.Decide(-i);
                     return null;
                 }
                 if (conflictOnNegative)
                 {
-                    Console.WriteLine($"Conflict on {-i}.");
+                    if (Debug) Console.WriteLine($"Conflict on {-i}.");
                     formula.Decide(i);
                     return null;
                 }
