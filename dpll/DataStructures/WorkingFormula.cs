@@ -271,7 +271,12 @@ namespace dpll.DataStructures
             Debug.Assert(Antecedent[0] != null);
 
             HashSet<int> clause = Antecedent[0]!.Literals.ToHashSet();
-            HashSet<int> involvedVariables = clause.ToHashSet();
+            HashSet<int> involvedVariables = new HashSet<int>();
+
+            foreach(int literal in clause)
+            {
+                involvedVariables.Add(Math.Abs(literal));
+            }
 
             while (true)
             {
